@@ -108,11 +108,11 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
     [
       {{
         "rank": 1,
-        "title": "DRAFT JUDUL SHORTS",
-        "timestamp_seconds": 120,  # GANTI ke integer (angka detik murni, contoh: 120)
+        "title": "DRAFT JUDUL SHORTS (Maksimal 60 karakter, pakai kata picu kuat)",
+        "timestamp_text": "Tulis menit akurat sesuai letaknya di transkrip, misal 02:02",
         "score": "98%",
-        "hook": "Caption...",
-        "reason": "Alasan..."
+        "hook": "Hook kalimat pertama untuk caption Shorts disini",
+        "reason": "Kutipan Kunci: '[Tulis kutipan kalimat kunci disini]'. Alasan Viral: [Tulis emotional trigger & detail alasan disini]."
       }}
     ]
     """
@@ -196,17 +196,8 @@ if st.session_state.clips_data and st.session_state.saved_url:
     st.markdown("---")
     st.markdown("<p style='font-size: 11px; font-weight: bold; color: #2563EB; uppercase; letter-spacing: 1px;'>📺 LIVE TARGET PLAYER</p>", unsafe_allow_html=True)
     
-    # Perbaikan Navigasi: Tambahkan 'key' unik agar video tidak mereset saat tombol diklik
-    st.video(f"https://www.youtube.com/watch?v={st.session_state.video_id}", start_time=start_seconds, key=st.session_state.video_id)
-
-    if st.session_state.detected_moments:
-        for moment in st.session_state.detected_moments:
-            # Gunakan 'timestamp_seconds' dari hasil perbaikan JSON di atas
-            detik_lompat = moment.get('timestamp_seconds', moment.get('detik', 0))
-            
-            if st.button(f"🎬 Lompat ke Detik {detik_lompat}", key=f"btn_{moment['rank']}"):
-                st.query_params["t"] = detik_lompat
-                st.rerun()
+    # Memuat pemutar video
+    st.video(st.session_state.saved_url, start_time=st.session_state.start_time)
     
     # Injeksi JavaScript untuk menjaga fungsi Autoplay instan saat klik tombol melompat
     st.components.v1.html(f"""
