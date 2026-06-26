@@ -140,9 +140,11 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
 st.markdown("<h1 style='text-align: center; margin-bottom: 4px;'>⚽ VB-Detector</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #64748B; font-size: 13px; margin-bottom: 24px;'>Android Custom Viral Dashboard</p>", unsafe_allow_html=True)
 
+# KODE BARU (Otomatis mengambil dari brankas Secrets)
+gemini_key = st.secrets["GEMINI_API_KEY"]
+
 with st.container():
-    gemini_key = st.text_input("🔑 Masukkan Gemini API Key Anda:", type="password")
-    youtube_url = st.text_input("🔗 Tempel Link YouTube Podcast Bola:", placeholder="[https://www.youtube.com/watch?v=](https://www.youtube.com/watch?v=)...")
+    youtube_url = st.text_input("🔗 Tempel Link YouTube Podcast Bola:", placeholder="https://www.youtube.com/watch?v=...")
 
 if 'clips_data' not in st.session_state:
     st.session_state.clips_data = None
