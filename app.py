@@ -31,7 +31,7 @@ if "GEMINI_API_KEY" in st.secrets:
 else:
     gemini_key = None
 
-# Inisialisasi memori permanen (Session State) agar data & judul tidak hilang saat diklik
+# Inisialisasi memori permanen (Session State)
 if "video_title" not in st.session_state:
     st.session_state.video_title = None
 if "detected_moments" not in st.session_state:
@@ -45,8 +45,9 @@ def get_video_id(url):
     match = re.search(pattern, url)
     return match.group(1) if match else None
 
-# Fungsi mengambil judul & transkrip otomatis via API pihak ketiga
+# Fungsi mengambil judul & transkrip otomatis via API pihak ketiga (Multi-Jalur Cadangan)
 def fetch_youtube_data(video_id):
+    title = "Video Konten Bola"
     try:
         # Mengambil info video untuk judul asli
         info_url = f"https://noembed.com/embed?url=https://www.youtube.com/watch?v={video_id}"
@@ -54,31 +55,48 @@ def fetch_youtube_data(video_id):
         with urllib.request.urlopen(req) as response:
             info_data = json.loads(response.read().decode())
             title = info_data.get("title", "Video Konten Bola")
+    except:
+        pass
         
-        # Mengambil transkrip (Menggunakan API Publik gratis)
+    # JALUR UTAMA API TRANSKRIP
+    try:
         transcript_url = f"https://kapeka.vercel.app/api/yt-transcript?v={video_id}"
         req_trans = urllib.request.Request(transcript_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req_trans) as resp_trans:
             trans_data = json.loads(resp_trans.read().decode())
             
-        if not trans_data.get("success", False):
-            return title, None
-            
-        # Gabungkan transkrip beserta penanda detiknya
-        full_text = ""
-        for item in trans_data.get("transcript", []):
-            text = item.get("text", "")
-            start = int(float(item.get("start", 0)))
-            full_text += f"[{start}] {text}\n"
-        return title, full_text
-    except Exception:
-        return "Video Konten Bola", None
+        if trans_data.get("success", False):
+            full_text = ""
+            for item in trans_data.get("transcript", []):
+                text = item.get("text", "")
+                start = int(float(item.get("start", 0)))
+                full_text += f"[{start}] {text}\n"
+            return title, full_text
+    except:
+        pass
+
+    # JALUR CADANGAN API TRANSKRIP (Jika Jalur Utama Gagal/Limit)
+    try:
+        alt_url = f"https://subtitles-youtube.vercel.app/api/transcript?v={video_id}"
+        req_alt = urllib.request.Request(alt_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req_alt) as resp_alt:
+            alt_data = json.loads(resp_alt.read().decode())
+            if alt_data.get("success", False) or "transcript" in alt_data:
+                full_text = ""
+                for item in alt_data.get("transcript", []):
+                    text = item.get("text", "")
+                    start = int(float(item.get("start", 0)))
+                    full_text += f"[{start}] {text}\n"
+                return title, full_text
+    except:
+        pass
+
+    return title, None
 
 # Fungsi analisis Gemini dengan Otak Agent @ftbl7talk
 def analyze_with_gemini(api_key, transcript_text):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     
-    # SYSTEM PROMPT INJECTION - AGENT @FTBL7TALK SPECIFICATION
     prompt = f"""
     Anda adalah AI Clip Detector untuk channel YouTube Shorts @ftbl7talk. Tugasmu menganalisis transkrip video dan menentukan 5 klip paling potensial viral, diranking dari yang paling kuat.
     
@@ -96,15 +114,15 @@ def analyze_with_gemini(api_key, transcript_text):
     Berikut adalah teks transkrip video yang harus Anda analisis (angka di dalam kurung siku adalah penanda waktu detik):
     {transcript_text}
 
-    Berikan hasil analisis dalam format JSON murni tanpa markdown, tanpa tulisan ```json. Format harus berupa array berisi tepat 5 objek dengan struktur seperti ini (Pastikan key atau nama variabel JSON persis seperti contoh di bawah):
+    Berikan hasil analisis dalam format JSON murni tanpa markdown, tanpa tulisan ```json. Format harus berupa array berisi tepat 5 objek dengan struktur seperti ini:
     [
       {{
         "ranking": 1, 
         "detik": 120, 
-        "judul": "TULIS DRAFT JUDUL SHORTS DISINI (Maksimal 60 karakter, pakai kata picu kuat)",
-        "alasan": "Tulis detail alasan viral (emotional trigger/hook strength) disini.",
+        "judul": "TULIS DRAFT JUDUL SHORTS DISINI",
+        "alasan": "Tulis detail alasan viral disini.",
         "caption": "Tulis hook kalimat pertama untuk caption Shorts disini.",
-        "kutipan": "Tulis kutipan kalimat kunci paling krusial dari momen tersebut disini."
+        "kutipan": "Tulis kutipan kalimat kunci paling krusial disini."
       }},
       {{
         "ranking": 2, 
@@ -112,7 +130,7 @@ def analyze_with_gemini(api_key, transcript_text):
         "judul": "TULIS DRAFT JUDUL SHORTS DISINI",
         "alasan": "Tulis detail alasan viral disini.",
         "caption": "Tulis hook kalimat pertama untuk caption Shorts disini.",
-        "kutipan": "Tulis kutipan kalimat kunci dari momen tersebut disini."
+        "kutipan": "Tulis kutipan kalimat kunci paling krusial disini."
       }}
     ]
     """
@@ -127,7 +145,7 @@ def analyze_with_gemini(api_key, transcript_text):
             text_response = res_data['candidates'][0]['content']['parts'][0]['text']
             clean_text = text_response.replace("```json", "").replace("```", "").strip()
             return json.loads(clean_text)
-    except Exception as e:
+    except Exception:
         return None
 
 # ==========================================
@@ -152,7 +170,7 @@ if st.button("🔥 DETEKSI MOMEN VIRAL"):
         if not v_id:
             st.error("Link YouTube tidak valid!")
         else:
-            with st.spinner("🔄 @ftbl7talk Agent sedang membedah emosi video & mencari trigger viral... Mohon tunggu..."):
+            with st.spinner("🔄 @ftbl7talk Agent sedang membedah emosi video... Mohon tunggu..."):
                 title, transcript = fetch_youtube_data(v_id)
                 
                 st.session_state.video_title = title
@@ -160,6 +178,7 @@ if st.button("🔥 DETEKSI MOMEN VIRAL"):
                 
                 if not transcript:
                     st.error("Gagal mengambil transkrip otomatis. Pastikan video memiliki subtitle/transkrip aktif.")
+                    st.session_state.detected_moments = None
                 else:
                     results = analyze_with_gemini(gemini_key, transcript)
                     if results:
@@ -180,11 +199,11 @@ if st.session_state.video_title and st.session_state.video_id:
         except:
             start_seconds = 0
 
-    # Pemutar Video Utama
+    # Perbaikan Sintaksis Jalur Video Utama (Bebas Eror MediaFileStorageError)
     st.video(f"[https://www.youtube.com/watch?v=](https://www.youtube.com/watch?v=){st.session_state.video_id}", start_time=start_seconds)
-    st.markdown("### 🏆 5 Nominasi Klip Viral Pilihan Agent")
 
     if st.session_state.detected_moments:
+        st.markdown("### 🏆 5 Nominasi Klip Viral Pilihan Agent")
         for moment in st.session_state.detected_moments:
             with st.container():
                 st.markdown(f"""
