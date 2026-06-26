@@ -89,24 +89,33 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
     full_scanned_transcript = transcript_text[:220000]
     
     prompt = f"""
-    Kamu adalah pakar editor YouTube Shorts dan Clipper Video Sepak Bola Indonesia yang jenius.
-    Tugas krusialmu: Pindailah KESELURUHAN transkrip video dari awal hingga akhir video berdurasi panjang (bisa mencapai 2 jam / 120 menit). Jangan sampai ada menit akhir yang terlewat.
-    Temukan TEPAT 5 momen paling emosional, kontroversial, atau menarik dari SEPANJANG DURASI 2 JAM video tersebut untuk dijadikan Shorts potensial FYP.
+    Kamu adalah AI Clip Detector untuk channel YouTube Shorts @ftbl7talk. Tugasmu menganalisis transkrip video dan menentukan 5 klip paling potensial viral, diranking dari yang paling kuat.
+    
+    Konteks channel:
+    - Konten: klip dari Coach Justin (Justinus Lhaksana), analis sepak bola Indonesia yang dikenal blak-blakan dan kontroversial.
+    - Audiens: pria Indonesia, 25–34 tahun, mobile aktif.
+    - Trigger terkuat: pernyataan kontroversial Coach Justin, topik Timnas Indonesia, naturalisasi, reaksi emosional tokoh terkenal.
+
+    Kriteria pemilihan klip:
+    - Harus mengandung pernyataan mengejutkan, kontroversial, panas, atau emosional tinggi.
+    - Kalimat pertama klip harus langsung "memukul" (high hook strength) — tidak butuh konteks intro yang panjang.
+    - Sangat relevan dengan dinamika kultur suporter sepak bola di Indonesia.
 
     Berikut adalah transkrip lengkap video (format [mm:ss] teks):
     {full_scanned_transcript}
 
-    Wajib berikan jawaban HANYA dalam format JSON Array mentah berisi TEPAT 5 objek tanpa kata penutup/pembuka lain atau backticks markdown, persis seperti struktur ini:
+    Wajib berikan jawaban HANYA dalam format JSON Array mentah berisi TEPAT 5 data objek:
     [
       {{
         "rank": 1,
-        "title": "Judul Momen Menarik dari Hasil Pemindaian Menyeluruh Video Panjang",
-        "timestamp_text": "Tulis menit akurat sesuai letaknya di transkrip, misal 24:15, 75:40, atau 112:05",
+        "title": "DRAFT JUDUL SHORTS (Maksimal 60 karakter, pakai kata picu kuat)",
+        "timestamp_text": "Tulis menit akurat sesuai letaknya di transkrip, misal 02:02",
         "score": "98%",
-        "hook": "Kalimat Hook Utama Konten Baru",
-        "reason": "Alasan kenapa bagian ini viral."
+        "hook": "Hook kalimat pertama untuk caption Shorts disini",
+        "reason": "Kutipan Kunci: '[Tulis kutipan kalimat kunci disini]'. Alasan Viral: [Tulis emotional trigger & detail alasan disini]."
       }}
     ]
+    """
     """
     
     try:
