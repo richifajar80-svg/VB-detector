@@ -83,11 +83,11 @@ def get_dynamic_transcript(video_id):
 # 2-HOUR DEEP GEMINI ENGINE (MAX 220K CHARS)
 # ==========================================
 def analyze_with_gemini_dynamic(api_key, transcript_text):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    
-    # PERUBAHAN UTAMA: Dinaikkan menjadi 220.000 karakter agar penuh mencakup durasi 2 jam podcast bola
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+
+    # PERUBAHAN UTAMA: Dinaikkan menjadi 220.000 karakter agar penuh
     full_scanned_transcript = transcript_text[:220000]
-    
+
     prompt = f"""
     Kamu adalah AI Clip Detector untuk channel YouTube Shorts @ftbl7talk. Tugasmu menganalisis transkrip video dan menentukan 5 klip paling potensial viral, diranking dari yang paling kuat.
     
@@ -116,7 +116,12 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
       }}
     ]
     """
-    """
+
+    # Pastikan baris data ke bawah ini lurus dengan variabel url dan prompt di atas!
+    data = {"contents": [{"parts": [{"text": prompt}]}]}
+    body = json.dumps(data).encode('utf-8')
+    
+    # ... sisa kode try-except di bawahnya juga harus sejajar lurus ke bawah
     
     try:
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
