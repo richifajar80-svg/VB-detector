@@ -197,7 +197,7 @@ if st.session_state.clips_data and st.session_state.saved_url:
     st.markdown("<p style='font-size: 11px; font-weight: bold; color: #2563EB; uppercase; letter-spacing: 1px;'>📺 LIVE TARGET PLAYER</p>", unsafe_allow_html=True)
     
     # Memuat pemutar video
-    st.video(st.session_state.saved_url, start_time=st.session_state.start_time)
+    st.video(st.session_state.saved_url, start_time=st.session_state.start_time, key=st.session_state.saved_url)
     
     # Injeksi JavaScript untuk menjaga fungsi Autoplay instan saat klik tombol melompat
     st.components.v1.html(f"""
