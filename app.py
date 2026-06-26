@@ -47,42 +47,26 @@ def fetch_youtube_data(video_id):
         trans_url = f"https://kapeka.vercel.app/api/yt-transcript?v={video_id}"
         with urllib.request.urlopen(trans_url) as res:
             data = json.loads(res.read().decode())
-            full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in data.get("transcript", [])])
-            return title, full_text
+            if "transcript" in data:
+                full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in data["transcript"]])
+                return title, full_text
+        return title, None
     except:
         return "Video Konten Bola", None
 
 def analyze_with_gemini_dynamic(api_key, transcript_text):
-    full_scanned_transcript = transcript_text[:220000]
+    if not transcript_text: return None
+    # Potong teks secara aman
+    full_scanned_transcript = transcript_text[:220000] if isinstance(transcript_text, str) else ""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     
     prompt = f"""
-    Kamu adalah AI Clip Detector untuk channel YouTube Shorts @ftbl7talk. Tugasmu menganalisis transkrip video dan menentukan 5 klip paling potensial viral, diranking dari yang paling kuat.
-    
-    Konteks channel:
-    - Konten: klip dari Coach Justin (Justinus Lhaksana), analis sepak bola Indonesia yang dikenal blak-blakan dan kontroversial.
-    - Audiens: pria Indonesia, 25–34 tahun, mobile aktif.
-    - Trigger terkuat: pernyataan kontroversial Coach Justin, topik Timnas Indonesia, naturalisasi, reaksi emosional tokoh terkenal.
-
-    Kriteria pemilihan klip:
-    - Durasi ideal 30–90 detik per klip.
-    - Harus mengandung pernyataan mengejutkan, kontroversial, panas, atau emosional tinggi.
-    - Kalimat pertama klip harus langsung "memukul" (high hook strength) — tidak butuh konteks intro yang panjang.
-    - Sangat relevan dengan dinamika kultur suporter sepak bola di Indonesia.
-
-    Berikut adalah transkrip lengkap video:
+    Kamu adalah AI Clip Detector untuk @ftbl7talk. Tugasmu mencari 5 momen viral (kontroversial, emosional, hook kuat) dari transkrip ini:
     {full_scanned_transcript}
 
-    Wajib berikan jawaban HANYA dalam format JSON Array mentah berisi TEPAT 5 data objek:
+    Berikan JSON Array mentah (Tepat 5 data):
     [
-      {{
-        "rank": 1,
-        "title": "DRAFT JUDUL SHORTS (Maksimal 60 karakter)",
-        "timestamp_seconds": 120,
-        "score": "98%",
-        "hook": "Hook kalimat pertama untuk caption Shorts",
-        "reason": "Kutipan Kunci: '...' Alasan: '...'"
-      }}
+      {{"rank": 1, "title": "Judul", "timestamp_seconds": 120, "score": "98%", "hook": "Caption", "reason": "Kutipan: '...' Alasan: '...'"}}
     ]
     """
     
@@ -105,18 +89,22 @@ url_input = st.text_input("🔗 Link YouTube:")
 if st.button("🔥 DETEKSI MOMEN VIRAL"):
     v_id = get_video_id(url_input)
     if v_id:
-        with st.spinner("Agent @ftbl7talk sedang membedah video..."):
+        with st.spinner("Agent @ftbl7talk membedah video..."):
             title, trans = fetch_youtube_data(v_id)
-            results = analyze_with_gemini_dynamic(gemini_key, trans)
-            if results:
-                st.session_state.saved_url = url_input
-                st.session_state.clips_data = results
-                st.rerun()
+            if trans:
+                results = analyze_with_gemini_dynamic(gemini_key, trans)
+                if results:
+                    st.session_state.saved_url = url_input
+                    st.session_state.clips_data = results
+                    st.rerun()
+                else:
+                    st.error("Gagal menganalisis. Coba link lain.")
+            else:
+                st.error("Transkrip tidak ditemukan pada video ini.")
 
 # Display
 if st.session_state.clips_data:
     st.markdown("---")
-    # Memastikan start_time selalu integer dan key unik agar tidak reset
     st.video(st.session_state.saved_url, start_time=int(st.session_state.start_time), key=st.session_state.saved_url)
     
     for clip in st.session_state.clips_data:
