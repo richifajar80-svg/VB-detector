@@ -39,18 +39,27 @@ def get_video_id(url):
 
 def fetch_youtube_data(video_id):
     try:
+        # Mengambil judul
         info_url = f"https://noembed.com/embed?url=https://www.youtube.com/watch?v={video_id}"
         with urllib.request.urlopen(info_url) as res:
             info = json.loads(res.read().decode())
             title = info.get("title", "Video Konten Bola")
         
+        # Mengambil transkrip dengan deteksi error lebih detail
         trans_url = f"https://kapeka.vercel.app/api/yt-transcript?v={video_id}"
         with urllib.request.urlopen(trans_url) as res:
             data = json.loads(res.read().decode())
-            if "transcript" in data:
+            
+            # Tambahan: Jika transkrip kosong, kita akan tahu alasannya
+            if "transcript" in data and data["transcript"]:
                 full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in data["transcript"]])
                 return title, full_text
-        return title, None
+            else:
+                st.warning(f"API berhasil dihubungi, tapi data transkrip kosong. Respon API: {data}")
+                return title, None
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat menghubungi API transkrip: {e}")
+        return "Video Konten Bola", None
     except:
         return "Video Konten Bola", None
 
