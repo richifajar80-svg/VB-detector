@@ -32,6 +32,7 @@ else:
 if "saved_url" not in st.session_state: st.session_state.saved_url = None
 if "start_time" not in st.session_state: st.session_state.start_time = 0
 if "clips_data" not in st.session_state: st.session_state.clips_data = None
+if "show_manual_input" not in st.session_state: st.session_state.show_manual_input = False
 
 def get_video_id(url):
     url = url.strip()
@@ -48,7 +49,6 @@ def get_video_id(url):
 
 def fetch_youtube_data(video_id):
     title = "Video Konten Bola"
-    # 1. Ambil Judul via NoEmbed (Aman & Ringan)
     try:
         info_url = f"https://noembed.com/embed?url=https://www.youtube.com/watch?v={video_id}"
         with urllib.request.urlopen(info_url) as res:
@@ -57,9 +57,7 @@ def fetch_youtube_data(video_id):
     except:
         pass
 
-    # 2. Ambil Transkrip Langsung Menggunakan Library Resmi Python
     try:
-        # Mencoba mengambil transkrip bahasa Indonesia ('id') atau bahasa Inggris ('en')
         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['id', 'en'])
         full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in transcript_list])
         return title, full_text
@@ -83,7 +81,6 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
     - Durasi ideal 30–90 detik per klip.
     - Harus mengandung pernyataan mengejutkan, kontroversial, panas, atau emosional tinggi.
     - Kalimat pertama klip harus langsung "memukul" (high hook strength) — tidak butuh konteks intro yang panjang.
-    - Sangat relevan dengan dinamika kultur suporter sepak bola di Indonesia.
 
     Berikut adalah transkrip lengkap video:
     {full_scanned_transcript}
@@ -125,20 +122,40 @@ if st.button("🔥 DETEKSI MOMEN VIRAL"):
     else:
         v_id = get_video_id(url_input)
         if v_id:
-            with st.spinner("Agent @ftbl7talk membedah video..."):
+            with St.spinner("Mencoba menarik transkrip otomatis..."):
                 title, trans = fetch_youtube_data(v_id)
                 if trans:
                     results = analyze_with_gemini_dynamic(gemini_key, trans)
                     if results:
                         st.session_state.saved_url = url_input
                         st.session_state.clips_data = results
+                        st.session_state.show_manual_input = False
                         st.rerun()
-                    else:
-                        st.error("Gemini gagal memproses data JSON. Coba klik lagi.")
                 else:
-                    st.error("Transkrip gagal ditarik oleh sistem internal. Pastikan video memiliki subtitle resmi/otomatis dari YouTube.")
+                    st.session_state.saved_url = url_input
+                    st.session_state.show_manual_input = True
+                    st.warning("YouTube memblokir penarikan otomatis cloud server. Silakan gunakan fitur tempel manual di bawah ini 👇")
         else:
             st.error("Format URL YouTube tidak dikenali.")
+
+# Fitur Cadangan: Muncul jika penarikan otomatis diblokir YouTube
+if st.session_state.show_manual_input:
+    st.markdown("### 📋 Salin-Tempel Transkrip Manual")
+    st.info("Buka video tersebut di aplikasi YouTube HP/Laptop -> Klik 'Show Transcript' -> Salin semua teksnya dan tempel di kotak bawah ini:")
+    manual_trans = st.text_area("Tempel teks transkrip di sini:", height=200)
+    
+    if st.button("🚀 ANALISIS TRANSKRIP MANUAL"):
+        if manual_trans:
+            with st.spinner("Agent @ftbl7talk sedang membedah teks transkrip Anda..."):
+                results = analyze_with_gemini_dynamic(gemini_key, manual_trans)
+                if results:
+                    st.session_state.clips_data = results
+                    st.session_state.show_manual_input = False
+                    st.rerun()
+                else:
+                    st.error("Gemini gagal membaca teks tersebut. Pastikan format teks terbaca jelas.")
+        else:
+            st.error("Kotak transkrip masih kosong!")
 
 # Display
 if st.session_state.clips_data:
