@@ -176,5 +176,108 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
         req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
         with urllib.request.urlopen(req) as response:
             res = json.loads(response.read().decode())
-            text = res['candidates'][0]['content']['parts'][0]['text']
-            text = text.replace("```json", "").replace("
+            text = res['candidates'][0]['content']['parts'][0]['text'].strip()
+            
+            # Menggunakan ekstraksi string yang aman tanpa menyentuh simbol backtick literal di kode
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            
+            text = text.strip("` \n")
+            return json.loads(text)
+    except:
+        return None
+
+# --- TAMPILAN HEADER BRANDING ---
+st.markdown("<h1 style='color: #FFFFFF; font-weight: 800; margin-bottom: 4px;'>🔬 FTBL7 Labs</h1>", unsafe_allow_html=True)
+st.markdown("<p style='color: #94A3B8; font-size: 15px; margin-bottom: 30px;'>Ready to find viral Shorts moments in seconds?</p>", unsafe_allow_html=True)
+
+if not gemini_key: 
+    gemini_key = st.text_input("🔑 Gemini API Key:", type="password")
+url_input = st.text_input("🔗 Paste your YouTube video link below:", placeholder="https://youtu.be/...")
+
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+if st.button("🔥 DETEKSI MOMEN VIRAL"):
+    if not gemini_key:
+        st.error("Masukkan API Key terlebih dahulu!")
+    elif not url_input:
+        st.error("Masukkan URL video terlebih dahulu!")
+    else:
+        v_id = get_video_id(url_input)
+        if v_id:
+            with st.spinner("Analyzing automated transcript map..."):
+                title, trans = fetch_youtube_data(v_id)
+                if trans:
+                    results = analyze_with_gemini_dynamic(gemini_key, trans)
+                    if results:
+                        st.session_state.saved_url = url_input
+                        st.session_state.clips_data = results
+                        st.session_state.show_manual_input = False
+                        st.rerun()
+                    else:
+                        st.error("Gemini gagal menyusun struktur JSON data.")
+                else:
+                    st.session_state.saved_url = url_input
+                    st.session_state.show_manual_input = True
+                    st.rerun()
+        else:
+            st.error("Format URL YouTube tidak dikenali.")
+
+# Interface Cadangan (Paste Transkrip Manual)
+if st.session_state.show_manual_input:
+    st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
+    st.markdown("""
+        <div class='custom-info'>
+            ⚠️ <b>Cloud Server Rate-Limited.</b><br>
+            YouTube membatasi penarikan otomatis. Silakan buka video di aplikasi YouTube Anda -> Klik <b>'Show Transcript'</b> -> Salin teksnya dan taruh di bawah ini.
+        </div>
+    """, unsafe_allow_html=True)
+    
+    manual_trans = st.text_area("📋 Tempel teks transkrip di sini:", height=180, placeholder="[00:12] Coach Justin: Taktik mereka salah...")
+    
+    if st.button("🚀 ANALISIS TRANSKRIP MANUAL"):
+        if manual_trans:
+            with st.spinner("AI Agent @ftbl7talk sedang mengekstrak poin emosi tertinggi..."):
+                results = analyze_with_gemini_dynamic(gemini_key, manual_trans)
+                if results:
+                    st.session_state.clips_data = results
+                    st.session_state.show_manual_input = False
+                    st.rerun()
+                else:
+                    st.error("Sistem AI gagal membedah teks tersebut.")
+        else:
+            st.error("Kotak transkrip tidak boleh kosong!")
+
+# Panel Display Hasil Deteksi
+if st.session_state.clips_data:
+    st.markdown("<hr style='border-color: #1E293B;'>", unsafe_allow_html=True)
+    
+    # Validasi Angka Detik
+    try:
+        raw_start = st.session_state.get("start_time", 0)
+        start_seconds = int(raw_start) if raw_start is not None else 0
+    except (ValueError, TypeError):
+        start_seconds = 0
+
+    st.video(st.session_state.saved_url, start_time=start_seconds, key=st.session_state.saved_url)
+    st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
+    
+    for clip in st.session_state.clips_data:
+        try:
+            detik = int(clip.get('timestamp_seconds', 0))
+        except (ValueError, TypeError):
+            detik = 0
+            
+        st.markdown(f"""
+            <div class='moment-box'>
+                <div class='moment-title'>🔥 [Rank {clip['rank']}] {clip['title']}</div>
+                <div class='moment-meta'>{clip['reason']}</div>
+                <div class='moment-hook'>Hook: {clip['hook']}</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button(f"🎬 Lompat ke Momen Detik {detik}", key=f"btn_{clip['rank']}"):
+            st.session_state.start_time = detik
+            st.rerun()
