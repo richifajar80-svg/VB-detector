@@ -160,7 +160,14 @@ if st.session_state.show_manual_input:
 # Display
 if st.session_state.clips_data:
     st.markdown("---")
-    st.video(st.session_state.saved_url, start_time=int(st.session_state.start_time), key=st.session_state.saved_url)
+    # Memastikan start_time aman dari nilai None atau non-integer
+    try:
+        raw_start = st.session_state.get("start_time", 0)
+        start_seconds = int(raw_start) if raw_start is not None else 0
+    except (ValueError, TypeError):
+        start_seconds = 0
+
+    st.video(st.session_state.saved_url, start_time=start_seconds, key=st.session_state.saved_url)
     
     for clip in st.session_state.clips_data:
         detik = int(clip.get('timestamp_seconds', 0))
