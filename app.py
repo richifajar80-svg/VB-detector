@@ -20,25 +20,18 @@ def get_video_id(url):
     match = re.search(r'(?:v=|\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})', url)
     return match.group(1) if match else None
 
-def analyze_with_gemini(api_key, transcript, mode="detect"):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+elif menu == "📊 Trend & Sentiment":
+    st.title("📊 Trend & Sentiment Lab")
+    api_key = st.text_input("Gemini API Key", type="password")
     
-    # Prompt Dinamis: Deteksi Klip + Hook Generator
-    if mode == "detect":
-        prompt = f"""Analisis transkrip ini dan berikan 5 klip viral. Untuk setiap klip, buatkan 3 opsi hook: (1) Kontroversial, (2) Emosional, (3) Pertanyaan.
-        Format JSON: {{"clips": [{{"rank":1, "title":"...", "timestamp":120, "reason":"...", "hooks":["hook1","hook2","hook3"]}}]}}
-        Transkrip: {transcript[:200000]}"""
-    else:
-        prompt = "Analisis sentimen sepak bola Indonesia terkini. Berikan daftar 5 topik terhangat, sentimen (Positif/Negatif), dan saran konten untuk FTBL7talk."
-
-    data = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req) as res:
-            res_data = json.loads(res.read().decode())
-            text = res_data['candidates'][0]['content']['parts'][0]['text'].strip("`json \n")
-            return json.loads(text)
-    except: return None
+    if st.button("Update Trend"):
+        with st.spinner("Mencari tren sepak bola terkini..."):
+            data = analyze_with_gemini(api_key, "", "sentiment")
+            if data:
+                # Menampilkan dalam bentuk tabel agar lebih enak dibaca
+                st.table(data)
+            else:
+                st.error("Gagal menarik data tren. Periksa API Key Anda.")
 
 # --- SIDEBAR MENU ---
 menu = st.sidebar.radio("Navigation", ["🔥 Clip Detector", "📊 Trend & Sentiment"])
@@ -68,7 +61,7 @@ elif menu == "📊 Trend & Sentiment":
     st.title("📊 Trend & Sentiment Lab")
     api_key = st.text_input("Gemini API Key", type="password")
     if st.button("Update Trend"):
-        data = analyze_with_gemini(api_key, "Trend", "sentiment")
+        data = analyze_with_gemini(api_key, "", mode="sentiment")
         st.write(data)
 
 # Fungsi fetch_youtube_data_api bisa ditaruh di sini
