@@ -40,23 +40,21 @@ def fetch_youtube_data_api(video_id):
 
 def analyze_with_gemini(api_key, input_data, mode="detect"):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    
     if mode == "detect":
-        prompt = f"""Analisis transkrip ini dan berikan 5 klip viral. Untuk setiap klip, buatkan 3 opsi hook: (1) Kontroversial, (2) Emosional, (3) Pertanyaan.
+        prompt = f"""Analisis transkrip ini dan berikan 5 klip viral. Untuk setiap klip, buatkan 3 opsi hook.
         Berikan jawaban HANYA dalam format JSON Array mentah:
         [ {{"rank":1, "title":"...", "timestamp_seconds":120, "reason":"...", "hooks":["hook1","hook2","hook3"]}} ]
         Transkrip: {input_data[:200000]}"""
     else:
-        prompt = """Lakukan riset tren sepak bola Indonesia terkini. Berikan respons dalam format JSON Array:
-        [ {"topik": "...", "sentimen": "Positif/Negatif/Netral", "saran_konten": "..."} ]"""
+        # Modifikasi prompt agar menerima keyword
+        topic = input_data if input_data else "Sepak Bola Indonesia"
+        prompt = f"""Analisis tren dan sentimen netizen terkait topik: "{topic}". 
+        Berikan respons dalam format JSON Array berisi 5 poin analisis:
+        [ {{"topik": "...", "sentimen": "Positif/Negatif/Netral", "saran_konten": "..."}} ]"""
     
     data = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req) as res:
-            res_data = json.loads(res.read().decode())
-            text = res_data['candidates'][0]['content']['parts'][0]['text'].strip("`json \n")
-            return json.loads(text)
-    except: return None
+    # ... (sisa kode request urllib sama seperti sebelumnya)
 
 # --- SIDEBAR & NAVIGATION ---
 menu = st.sidebar.radio("Navigation", ["Clip Detector", "Trend & Sentiment"])
@@ -89,8 +87,19 @@ if menu == "Clip Detector":
 elif menu == "Trend & Sentiment":
     st.title("📊 Trend & Sentiment Lab")
     api_key = st.text_input("Gemini API Key", type="password")
+    
+    # Input Keyword untuk riset spesifik
+    keyword = st.text_input("Masukkan Keyword (Opsional):", placeholder="Contoh: Timnas Indonesia, Coach Justin...")
+    
     if st.button("Update Trend"):
-        with st.spinner("Mencari tren terkini..."):
-            data = analyze_with_gemini(api_key, "", "sentiment")
-            if data: st.table(data)
-            else: st.error("Gagal menarik data.")
+        if not api_key:
+            st.error("Masukkan API Key terlebih dahulu!")
+        else:
+            with st.spinner(f"Menganalisis tren untuk: {keyword if keyword else 'Sepak Bola Indonesia'}..."):
+                # Mengirim keyword ke dalam fungsi analyze_with_gemini
+                data = analyze_with_gemini(api_key, keyword, "sentiment")
+                if data:
+                    st.success(f"Hasil Analisis untuk: {keyword if keyword else 'Tren Sepak Bola Indonesia'}")
+                    st.table(data)
+                else:
+                    st.error("Gagal menarik data. Coba cek API Key atau coba lagi.")
