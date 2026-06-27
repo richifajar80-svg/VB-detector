@@ -42,19 +42,32 @@ def analyze_with_gemini(api_key, input_data, mode="detect"):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     
     if mode == "detect":
-        prompt = f"""Analisis transkrip ini dan berikan 5 klip viral. Untuk setiap klip, buatkan 3 opsi hook.
-        Berikan jawaban HANYA dalam format JSON Array mentah:
+        prompt = f"""Analisis transkrip ini dan berikan 5 klip viral. Berikan HANYA JSON Array mentah tanpa penjelasan lain.
         [ {{"rank":1, "title":"...", "timestamp_seconds":120, "reason":"...", "hooks":["hook1","hook2","hook3"]}} ]
         Transkrip: {input_data[:200000]}"""
     else:
-        # Modifikasi prompt agar menerima keyword
-        topic = input_data if input_data else "Sepak Bola Indonesia"
-        prompt = f"""Analisis tren dan sentimen netizen terkait topik: "{topic}". 
-        Berikan respons dalam format JSON Array berisi 5 poin analisis:
+        prompt = f"""Riset tren sentimen sepak bola untuk topik: "{input_data}". 
+        Berikan HANYA JSON Array mentah:
         [ {{"topik": "...", "sentimen": "Positif/Negatif/Netral", "saran_konten": "..."}} ]"""
     
     data = {"contents": [{"parts": [{"text": prompt}]}]}
-    # ... (sisa kode request urllib sama seperti sebelumnya)
+    try:
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req) as res:
+            res_data = json.loads(res.read().decode())
+            raw_text = res_data['candidates'][0]['content']['parts'][0]['text']
+            
+            # --- FILTER ANTI-GAGAL ---
+            # Mencari lokasi [ dan ] untuk mengambil bagian JSON saja
+            start = raw_text.find('[')
+            end = raw_text.rfind(']') + 1
+            if start != -1 and end != -1:
+                clean_json = raw_text[start:end]
+                return json.loads(clean_json)
+            return None
+    except Exception as e:
+        st.error(f"Debug Eror: {e}") # Ini akan memunculkan eror asli di layar untuk mempermudah diagnosa
+        return None
 
 # --- SIDEBAR & NAVIGATION ---
 menu = st.sidebar.radio("Navigation", ["Clip Detector", "Trend & Sentiment"])
