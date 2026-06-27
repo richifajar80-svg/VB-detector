@@ -55,21 +55,29 @@ def fetch_youtube_data(video_id):
         # Jika gagal, kembalikan error spesifik untuk mempermudah deteksi
         return "Video Konten Bola", None
 
-def analyze_with_gemini_dynamic(api_key, transcript_text):
-    if not transcript_text: return None
-    # Potong teks secara aman
-    full_scanned_transcript = transcript_text[:220000] if isinstance(transcript_text, str) else ""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+def analyze_with_gemini_dynamic(api_key, video_url):
+    # Kita langsung kirim URL ke Gemini, Gemini akan berusaha membaca kontennya sendiri
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:embedContent?key={api_key}"
     
+    # Menggunakan model Gemini yang bisa membaca konten langsung dari link
     prompt = f"""
-    Kamu adalah AI Clip Detector untuk @ftbl7talk. Tugasmu mencari 5 momen viral (kontroversial, emosional, hook kuat) dari transkrip ini:
-    {full_scanned_transcript}
-
-    Berikan JSON Array mentah (Tepat 5 data):
+    Analisis video YouTube berikut: {video_url}
+    Tugasmu adalah bertindak sebagai AI Clip Detector untuk @ftbl7talk. Cari 5 momen paling viral/kontroversial.
+    
+    Berikan jawaban HANYA dalam format JSON Array mentah (Tepat 5 data):
     [
-      {{"rank": 1, "title": "Judul", "timestamp_seconds": 120, "score": "98%", "hook": "Caption", "reason": "Kutipan: '...' Alasan: '...'"}}
+      {{
+        "rank": 1,
+        "title": "DRAFT JUDUL",
+        "timestamp_seconds": 120,
+        "score": "98%",
+        "hook": "Caption",
+        "reason": "Kutipan Kunci: '...' Alasan: '...'"
+      }}
     ]
     """
+    
+    # ... (sisanya tetap sama)
     
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     body = json.dumps(data).encode('utf-8')
