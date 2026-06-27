@@ -122,7 +122,7 @@ if st.button("🔥 DETEKSI MOMEN VIRAL"):
     else:
         v_id = get_video_id(url_input)
         if v_id:
-            with St.spinner("Mencoba menarik transkrip otomatis..."):
+            with st.spinner("Mencoba menarik transkrip otomatis..."):
                 title, trans = fetch_youtube_data(v_id)
                 if trans:
                     results = analyze_with_gemini_dynamic(gemini_key, trans)
