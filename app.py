@@ -4,35 +4,108 @@ import json
 import re
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# Set konfigurasi halaman
-st.set_page_config(page_title="VB-Detector | @ftbl7talk", page_icon="⚽", layout="centered")
+# Set konfigurasi halaman & tema dasar dark
+st.set_page_config(
+    page_title="VB-Detector | @ftbl7talk", 
+    page_icon="⚽", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# Custom CSS
+# RE-DESIGN TOTAL: Injeksi CSS Kustom Meniru Nuansa image_552a15.jpg
 st.markdown("""
     <style>
-    .main { background-color: #FFFFFF; }
-    div.stButton > button:first-child {
-        background-color: #1E40AF; color: white; border-radius: 8px;
-        width: 100%; font-weight: bold; border: none; padding: 12px;
+    /* Mengubah latar belakang utama menjadi dark navy/charcoal */
+    .stApp {
+        background-color: #0B0F19;
+        color: #F3F4F6;
     }
+    
+    /* Mengubah gaya teks input */
+    .stTextInput > div > div > input {
+        background-color: #1F2937 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #374151 !important;
+        border-radius: 30px !important;
+        padding: 12px 24px !important;
+    }
+    
+    /* Mengubah gaya text area manual input */
+    .stTextArea > div > div > textarea {
+        background-color: #1F2937 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #374151 !important;
+        border-radius: 16px !important;
+    }
+    
+    /* Tombol Utama: Blue Electric Accent (Try it out for free style) */
+    div.stButton > button:first-child {
+        background-color: #2563EB !important;
+        color: #FFFFFF !important;
+        border-radius: 30px !important;
+        width: 100%;
+        font-weight: 700;
+        border: none !important;
+        padding: 14px 28px !important;
+        font-size: 16px !important;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #1D4ED8 !important;
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+        transform: translateY(-1px);
+    }
+
+    /* Kotak Hasil Momen Konten (Card Style Modern) */
     .moment-box {
-        background-color: #F8FAFC; border-left: 5px solid #1E40AF;
-        padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;
+        background: linear-gradient(145deg, #1E293B, #0F172A);
+        border: 1px solid #334155;
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .moment-title {
+        color: #FFFFFF;
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    .moment-meta {
+        color: #94A3B8;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .moment-hook {
+        color: #38BDF8;
+        font-weight: 600;
+        background-color: rgba(56, 189, 248, 0.1);
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: inline-block;
+        margin-top: 8px;
+    }
+    
+    /* Banner Informasi Khusus (Info/Warning Box Style) */
+    .custom-info {
+        background-color: #111827;
+        border-left: 4px solid #F59E0B;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
     }
     </style>
 """, unsafe_allow_html=True)
-
-# Engine API Key
-if "GEMINI_API_KEY" in st.secrets:
-    gemini_key = st.secrets["GEMINI_API_KEY"]
-else:
-    gemini_key = None
 
 # Session State Initializer
 if "saved_url" not in st.session_state: st.session_state.saved_url = None
 if "start_time" not in st.session_state: st.session_state.start_time = 0
 if "clips_data" not in st.session_state: st.session_state.clips_data = None
 if "show_manual_input" not in st.session_state: st.session_state.show_manual_input = False
+
+# Engine API Key via Secrets
+gemini_key = st.secrets.get("GEMINI_API_KEY", None)
 
 def get_video_id(url):
     url = url.strip()
@@ -43,8 +116,7 @@ def get_video_id(url):
     ]
     for pattern in patterns:
         match = re.search(pattern, url)
-        if match:
-            return match.group(1)
+        if match: return match.group(1)
     return None
 
 def fetch_youtube_data(video_id):
@@ -61,7 +133,7 @@ def fetch_youtube_data(video_id):
         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['id', 'en'])
         full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in transcript_list])
         return title, full_text
-    except Exception as e:
+    except:
         return title, None
 
 def analyze_with_gemini_dynamic(api_key, transcript_text):
@@ -109,10 +181,15 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
     except:
         return None
 
-# UI
-st.markdown("<h1 style='text-align: center;'>⚽ VB-Detector</h1>", unsafe_allow_html=True)
-if not gemini_key: gemini_key = st.text_input("🔑 Gemini API Key:", type="password")
-url_input = st.text_input("🔗 Link YouTube:")
+# --- APLIKASI UTAMAMU ---
+st.markdown("<h1 style='text-align: center; color: #FFFFFF; font-weight: 800; margin-bottom: 4px;'>⚡ VB-Detector</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 15px; margin-bottom: 30px;'>Ready to find viral Shorts moments in seconds?</p>", unsafe_allow_html=True)
+
+if not gemini_key: 
+    gemini_key = st.text_input("🔑 Gemini API Key:", type="password")
+url_input = st.text_input("🔗 Paste your YouTube video link below:", placeholder="https://youtu.be/...")
+
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
 if st.button("🔥 DETEKSI MOMEN VIRAL"):
     if not gemini_key:
@@ -122,7 +199,7 @@ if st.button("🔥 DETEKSI MOMEN VIRAL"):
     else:
         v_id = get_video_id(url_input)
         if v_id:
-            with st.spinner("Mencoba menarik transkrip otomatis..."):
+            with st.spinner("Analyzing automated transcript map..."):
                 title, trans = fetch_youtube_data(v_id)
                 if trans:
                     results = analyze_with_gemini_dynamic(gemini_key, trans)
@@ -131,36 +208,45 @@ if st.button("🔥 DETEKSI MOMEN VIRAL"):
                         st.session_state.clips_data = results
                         st.session_state.show_manual_input = False
                         st.rerun()
+                    else:
+                        st.error("Gemini gagal menyusun struktur JSON data.")
                 else:
                     st.session_state.saved_url = url_input
                     st.session_state.show_manual_input = True
-                    st.warning("YouTube memblokir penarikan otomatis cloud server. Silakan gunakan fitur tempel manual di bawah ini 👇")
+                    st.rerun()
         else:
             st.error("Format URL YouTube tidak dikenali.")
 
-# Fitur Cadangan: Muncul jika penarikan otomatis diblokir YouTube
+# Interface Cadangan (Paste Transkrip Manual ala 2short)
 if st.session_state.show_manual_input:
-    st.markdown("### 📋 Salin-Tempel Transkrip Manual")
-    st.info("Buka video tersebut di aplikasi YouTube HP/Laptop -> Klik 'Show Transcript' -> Salin semua teksnya dan tempel di kotak bawah ini:")
-    manual_trans = st.text_area("Tempel teks transkrip di sini:", height=200)
+    st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
+    st.markdown("""
+        <div class='custom-info'>
+            ⚠️ <b>Cloud Server Rate-Limited.</b><br>
+            YouTube membatasi penarikan otomatis. Sesuai panduan platform, silakan buka video di aplikasi YouTube Anda -> Klik <b>'Show Transcript'</b> -> Salin teksnya dan taruh di bawah ini.
+        </div>
+    """, unsafe_allow_html=True)
+    
+    manual_trans = st.text_area("📋 Tempel teks transkrip di sini:", height=180, placeholder="[00:12] Coach Justin: Taktik mereka salah...")
     
     if st.button("🚀 ANALISIS TRANSKRIP MANUAL"):
         if manual_trans:
-            with st.spinner("Agent @ftbl7talk sedang membedah teks transkrip Anda..."):
+            with st.spinner("AI Agent @ftbl7talk sedang mengekstrak poin emosi tertinggi..."):
                 results = analyze_with_gemini_dynamic(gemini_key, manual_trans)
                 if results:
                     st.session_state.clips_data = results
                     st.session_state.show_manual_input = False
                     st.rerun()
                 else:
-                    st.error("Gemini gagal membaca teks tersebut. Pastikan format teks terbaca jelas.")
+                    st.error("Sistem AI gagal membedah teks tersebut.")
         else:
-            st.error("Kotak transkrip masih kosong!")
+            st.error("Kotak transkrip tidak boleh kosong!")
 
-# Display
+# Panel Display Hasil Deteksi
 if st.session_state.clips_data:
-    st.markdown("---")
-    # Memastikan start_time aman dari nilai None atau non-integer
+    st.markdown("<hr style='border-color: #1E293B;'>", unsafe_allow_html=True)
+    
+    # Validasi Angka Detik
     try:
         raw_start = st.session_state.get("start_time", 0)
         start_seconds = int(raw_start) if raw_start is not None else 0
@@ -168,11 +254,22 @@ if st.session_state.clips_data:
         start_seconds = 0
 
     st.video(st.session_state.saved_url, start_time=start_seconds, key=st.session_state.saved_url)
+    st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
     
     for clip in st.session_state.clips_data:
-        detik = int(clip.get('timestamp_seconds', 0))
-        with st.container():
-            st.markdown(f"<div class='moment-box'>🎯 <b>{clip['title']}</b><br>{clip['reason']}<br><i>Hook: {clip['hook']}</i></div>", unsafe_allow_html=True)
-            if st.button(f"🎬 Lompat ke {detik} detik", key=f"btn_{clip['rank']}"):
-                st.session_state.start_time = detik
-                st.rerun()
+        try:
+            detik = int(clip.get('timestamp_seconds', 0))
+        except (ValueError, TypeError):
+            detik = 0
+            
+        st.markdown(f"""
+            <div class='moment-box'>
+                <div class='moment-title'>🔥 [Rank {clip['rank']}] {clip['title']}</div>
+                <div class='moment-meta'>{clip['reason']}</div>
+                <div class='moment-hook'>Hook: {clip['hook']}</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button(f"🎬 Lompat ke Momen Detik {detik}", key=f"btn_{clip['rank']}"):
+            st.session_state.start_time = detik
+            st.rerun()
