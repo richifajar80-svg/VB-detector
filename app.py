@@ -3,16 +3,17 @@ import urllib.request
 import json
 import re
 from youtube_transcript_api import YouTubeTranscriptApi
+import os
 
-# Set konfigurasi halaman & tema dasar dark
+# Set konfigurasi halaman & tema dasar dark dengan branding baru
 st.set_page_config(
-    page_title="VB-Detector | @ftbl7talk", 
-    page_icon="⚽", 
+    page_title="FTBL7 Labs", 
+    page_icon="⚡", 
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# RE-DESIGN TOTAL: Injeksi CSS Kustom Meniru Nuansa image_552a15.jpg
+# RE-DESIGN TOTAL: Injeksi CSS Kustom Meniru Nuansa Premium
 st.markdown("""
     <style>
     /* Mengubah latar belakang utama menjadi dark navy/charcoal */
@@ -38,7 +39,7 @@ st.markdown("""
         border-radius: 16px !important;
     }
     
-    /* Tombol Utama: Blue Electric Accent (Try it out for free style) */
+    /* Tombol Utama: Blue Electric Accent */
     div.stButton > button:first-child {
         background-color: #2563EB !important;
         color: #FFFFFF !important;
@@ -181,9 +182,17 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
     except:
         return None
 
-# --- APLIKASI UTAMAMU ---
-st.markdown("<h1 style='text-align: center; color: #FFFFFF; font-weight: 800; margin-bottom: 4px;'>⚡ VB-Detector</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 15px; margin-bottom: 30px;'>Ready to find viral Shorts moments in seconds?</p>", unsafe_allow_html=True)
+# --- TAMPILAN HEADER BRANDING BARU ---
+logo_filename = "WhatsApp Image 2026-06-27 at 12.33.15 PM.jpeg"
+
+# Menampilkan logo jika file gambar ada di dalam folder proyek
+if os.path.exists(logo_filename):
+    st.image(logo_filename, width=220, use_container_width=False)
+else:
+    # Fallback jika file gambar belum di-push ke GitHub
+    st.markdown("<h1 style='text-align: center; color: #FFFFFF; font-weight: 800; margin-bottom: 4px;'>🔬 FTBL7 Labs</h1>", unsafe_allow_html=True)
+
+st.markdown("<p style='color: #94A3B8; font-size: 15px; margin-bottom: 30px;'>Ready to find viral Shorts moments in seconds?</p>", unsafe_allow_html=True)
 
 if not gemini_key: 
     gemini_key = st.text_input("🔑 Gemini API Key:", type="password")
