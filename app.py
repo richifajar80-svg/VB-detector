@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# RE-DESIGN TOTAL: Injeksi CSS Kustom Meniru Nuansa Premium
+# RE-DESIGN TOTAL: Injeksi CSS Kustom Meniru Nuansa Premium Dark Mode
 st.markdown("""
     <style>
     /* Mengubah latar belakang utama menjadi dark navy/charcoal */
@@ -176,9 +176,5 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
         req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
         with urllib.request.urlopen(req) as response:
             res = json.loads(response.read().decode())
-            # Memecah baris panjang agar aman dan tidak terpotong lagi
             text = res['candidates'][0]['content']['parts'][0]['text']
-            text = text.replace("```json", "").replace("```", "").strip()
-            return json.loads(text)
-    except:
-        return None
+            text = text.replace("```json", "").replace("
