@@ -2,7 +2,6 @@ import streamlit as st
 import urllib.request
 import json
 import re
-from youtube_transcript_api import YouTubeTranscriptApi
 
 # Set konfigurasi halaman & tema dasar dark dengan branding baru
 st.set_page_config(
@@ -129,12 +128,30 @@ def fetch_youtube_data(video_id):
     except:
         pass
 
+    # CARA BARU: Request menggunakan API server proxy publik agar tidak terblokir
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['id', 'en'])
-        full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in transcript_list])
-        return title, full_text
+        bypass_url = f"https://api.subtitles.me/api/transcript?v={video_id}"
+        req = urllib.request.Request(
+            bypass_url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        )
+        with urllib.request.urlopen(req, timeout=10) as res:
+            data = json.loads(res.read().decode())
+            if "transcript" in data:
+                full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in data["transcript"]])
+                return title, full_text
     except:
-        return title, None
+        # Cadangan Endpoint Kedua jika API pertama sibuk
+        try:
+            backup_url = f"https://youtube-transcript-open.vercel.app/api/transcript?v={video_id}"
+            with urllib.request.urlopen(backup_url, timeout=10) as res:
+                data = json.loads(res.read().decode())
+                if "transcript" in data:
+                    full_text = "\n".join([f"[{int(float(i['start']))}] {i['text']}" for i in data["transcript"]])
+                    return title, full_text
+        except:
+            return title, None
+    return title, None
 
 def analyze_with_gemini_dynamic(api_key, transcript_text):
     if not transcript_text: return None
@@ -178,7 +195,6 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
             res = json.loads(response.read().decode())
             text = res['candidates'][0]['content']['parts'][0]['text'].strip()
             
-            # Menggunakan ekstraksi string yang aman tanpa menyentuh simbol backtick literal di kode
             if text.startswith("```"):
                 text = text.split("```")[1]
                 if text.startswith("json"):
@@ -225,13 +241,13 @@ if st.button("🔥 DETEKSI MOMEN VIRAL"):
         else:
             st.error("Format URL YouTube tidak dikenali.")
 
-# Interface Cadangan (Paste Transkrip Manual)
+# Interface Cadangan (Muncul jika proxy publik di atas juga sedang penuh)
 if st.session_state.show_manual_input:
     st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
     st.markdown("""
         <div class='custom-info'>
-            ⚠️ <b>Cloud Server Rate-Limited.</b><br>
-            YouTube membatasi penarikan otomatis. Silakan buka video di aplikasi YouTube Anda -> Klik <b>'Show Transcript'</b> -> Salin teksnya dan taruh di bawah ini.
+            ⚠️ <b>Automated System Overloaded.</b><br>
+            Jika penarikan otomatis gagal, silakan gunakan metode manual: Buka video di YouTube -> Klik <b>'Show Transcript'</b> -> Salin teksnya dan taruh di bawah ini.
         </div>
     """, unsafe_allow_html=True)
     
@@ -254,7 +270,6 @@ if st.session_state.show_manual_input:
 if st.session_state.clips_data:
     st.markdown("<hr style='border-color: #1E293B;'>", unsafe_allow_html=True)
     
-    # Validasi Angka Detik
     try:
         raw_start = st.session_state.get("start_time", 0)
         start_seconds = int(raw_start) if raw_start is not None else 0
