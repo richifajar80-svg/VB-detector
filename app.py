@@ -176,4 +176,9 @@ def analyze_with_gemini_dynamic(api_key, transcript_text):
         req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
         with urllib.request.urlopen(req) as response:
             res = json.loads(response.read().decode())
-            text = res['candidates'][0]['content']['parts'][0]['text'].replace("```json", "").replace("
+            # Memecah baris panjang agar aman dan tidak terpotong lagi
+            text = res['candidates'][0]['content']['parts'][0]['text']
+            text = text.replace("```json", "").replace("```", "").strip()
+            return json.loads(text)
+    except:
+        return None
